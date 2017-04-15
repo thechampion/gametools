@@ -3,7 +3,7 @@
 #include <map>
 #include <vector>
 
-#include <unistd.h>
+#include <getopt.h>
 
 #include "common.h"
 
@@ -25,18 +25,73 @@ struct Stream
 typedef std::map<int, std::vector<Stream>> Streams;
 
 
+struct Parameters
+{
+	int verbosity = 0;
+	int first_arg;
+};
+
+
+Parameters parse_args(int argc, char* const argv[]);
+void print_help();
+
+void process_file(const char* filename, int verbosity);
+
+
 int main(int argc, char* argv[])
 {
-	if(argc < 2)
+	const Parameters params = parse_args(argc, argv);
+	for(int i = params.first_arg; i < argc; ++i)
+		process_file(argv[i], params.verbosity);
+}
+
+//----------------------------------------------------------------------------
+Parameters parse_args(int argc, char* const argv[])
+{
+	static const char short_options[] = "hv";
+	static const struct option long_options[] = {
+		{"help",    no_argument, 0, 'h'},
+		{"verbose", no_argument, 0, 'v'},
+		{0,         0,           0, 0  }
+	};
+
+	Parameters res;
+	for(;;)
 	{
-		std::cerr << "Usage: ogg-seeker FILE..." << std::endl;
-		std::exit(1);
+		int c = getopt_long(argc, argv, short_options, long_options, nullptr);
+		if(c == -1)
+			break;
+		switch(c)
+		{
+			case 'h':
+				print_help();
+				std::exit(0);
+			case 'v':
+				++res.verbosity;
+				break;
+			default:
+				std::cout << "Try ogg-seeker --help.\n";
+				std::exit(1);
+		}
 	}
+	res.first_arg = optind;
+	return res;
+}
 
-	//getopt_long
+//----------------------------------------------------------------------------
+void print_help()
+{
+	std::cout << "Usage: ogg-seeker [options] FILE...\n\n"
+		"Options:\n"
+		"  -h, --help     display this help and exit.\n"
+		"  -v, --verbose  increase verbosity, multiple -v options produce more output." << std::endl;
+}
 
+//----------------------------------------------------------------------------
+void process_file(const char* filename, int verbosity)
+{
 	Streams streams;
-	OggSeeker os(argv[1]);
+	OggSeeker os(filename);
 	OggPage& page = os.current_page();
 	while(os.next())
 	{
