@@ -27,6 +27,6 @@ int main(int argc, char* argv[])
 			name << page.serialno() << ".ogg";
 			i = streams.emplace(page.serialno(), std::ofstream(name.str(), std::ios_base::binary | std::ios_base::trunc)).first;
 		}
-		OggPage::write(i->second, page);
+		page.write(i->second);
 	}
 }

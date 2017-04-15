@@ -31,10 +31,10 @@ public:
 	int serialno() const { return ogg_page_serialno(page); }
 	int pageno() const { return ogg_page_pageno(page); }
 
-	static std::ostream& write(std::ostream& os, const OggPage& page)
+	void write(std::ostream& os) const
 	{
-		const ogg_page* p = page.page;
-		return os.write(reinterpret_cast<const char*>(p->header), p->header_len).write(reinterpret_cast<const char*>(p->body), p->body_len);
+		os.write(reinterpret_cast<const char*>(page->header), page->header_len) \
+			.write(reinterpret_cast<const char*>(page->body), page->body_len);
 	}
 };
 
