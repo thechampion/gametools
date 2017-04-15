@@ -1,10 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-//#include <algorithm>
-//#include <cstdint>
 #include <fstream>
-//#include <vector>
 
 #include <ogg/ogg.h>
 
