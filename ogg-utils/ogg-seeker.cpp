@@ -32,10 +32,10 @@ struct Parameters
 };
 
 
+void process_file(const char* filename, int verbosity);
+
 Parameters parse_args(int argc, char* const argv[]);
 void print_help();
-
-void process_file(const char* filename, int verbosity);
 
 
 int main(int argc, char* argv[])
@@ -43,6 +43,50 @@ int main(int argc, char* argv[])
 	const Parameters params = parse_args(argc, argv);
 	for(int i = params.first_arg; i < argc; ++i)
 		process_file(argv[i], params.verbosity);
+}
+
+//----------------------------------------------------------------------------
+void process_file(const char* filename, int verbosity)
+{
+	Streams streams;
+	OggSeeker os(filename);
+	OggPage& page = os.current_page();
+	while(os.next())
+	{
+		//if(page.bos())
+		//std::cout << "Span{" << std::showbase << std::hex << os.page_pos() << ":"
+		//	<< os.page_pos() + std::ifstream::pos_type(page.size() - 1) << "}, size = " << std::dec << page.size() << "\n";
+
+		Streams::iterator i = streams.find(page.serialno());
+		if(i == streams.end())
+			i = streams.emplace(page.serialno(), std::vector<Stream>()).first;
+		if(i->second.empty() || i->second.back().ended)
+			i->second.emplace_back(Stream());
+
+		Stream& s = i->second.back();
+		++s.pages;
+		s.size += page.size();
+
+		const Span span{os.page_pos(), os.page_pos() + std::ifstream::off_type(page.size() - 1)};
+		if(!s.spans.empty() && (s.spans.back().end + std::ifstream::off_type(1)) == span.begin)
+			s.spans.back().end = span.end;
+		else
+			s.spans.push_back(span);
+
+		if(page.eos())
+			s.ended = true;
+
+	}
+	for(auto i = streams.cbegin(); i != streams.cend(); ++i)
+	{
+		for(auto j = i->second.cbegin(); j != i->second.cend(); ++j)
+		{
+			std::cout << "bitstream #" << i->first << ": " << j->size << " bytes in " << j->pages << " pages, spans: " << std::showbase << std::hex;
+			for(auto k = j->spans.cbegin(); k != j->spans.cend(); ++k)
+				std::cout << k->begin << "-" << k->end << " ";
+			std::cout << std::dec << std::noshowbase << "\n";
+		}
+	}
 }
 
 //----------------------------------------------------------------------------
@@ -85,49 +129,4 @@ void print_help()
 		"Options:\n"
 		"  -h, --help     display this help and exit.\n"
 		"  -v, --verbose  increase verbosity, multiple -v options produce more output." << std::endl;
-}
-
-//----------------------------------------------------------------------------
-void process_file(const char* filename, int verbosity)
-{
-	Streams streams;
-	OggSeeker os(filename);
-	OggPage& page = os.current_page();
-	while(os.next())
-	{
-		//if(page.bos())
-		//std::cout << "Span{" << std::showbase << std::hex << os.page_pos() << ":"
-		//	<< os.page_pos() + std::ifstream::pos_type(page.size() - 1) << "}, size = " << std::dec << page.size() << "\n";
-
-		Streams::iterator i = streams.find(page.serialno());
-		if(i == streams.end())
-			i = streams.emplace(page.serialno(), std::vector<Stream>()).first;
-		if(i->second.empty() || i->second.back().ended)
-			i->second.emplace_back(Stream());
-
-		Stream& s = i->second.back();
-		++s.pages;
-		s.size += page.size();
-
-		const Span span{os.page_pos(), os.page_pos() + std::ifstream::off_type(page.size() - 1)};
-		if(!s.spans.empty() && (s.spans.back().end + std::ifstream::off_type(1)) == span.begin)
-			s.spans.back().end = span.end;
-		else
-			s.spans.push_back(span);
-
-		if(page.eos())
-			s.ended = true;
-
-	}
-	for(auto i = streams.cbegin(); i != streams.cend(); ++i)
-	{
-		std::cout << "bitstream #" << i->first << "\n";
-		for(auto j = i->second.cbegin(); j != i->second.cend(); ++j)
-		{
-			std::cout << "  " << j->size << " bytes in " << j->pages << " pages, spans: " << std::showbase << std::hex;
-			for(auto k = j->spans.cbegin(); k != j->spans.cend(); ++k)
-				std::cout << k->begin << "-" << k->end << " ";
-			std::cout << std::dec << std::noshowbase << "\n";
-		}
-	}
 }
