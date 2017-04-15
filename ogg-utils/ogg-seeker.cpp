@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <vector>
@@ -51,11 +52,16 @@ void process_file(const char* filename, int verbosity)
 	Streams streams;
 	OggSeeker os(filename);
 	OggPage& page = os.current_page();
+
+	if(verbosity > 1)
+		std::cout << filename << " OGG pages\n";
+
 	while(os.next())
 	{
-		//if(page.bos())
-		//std::cout << "Span{" << std::showbase << std::hex << os.page_pos() << ":"
-		//	<< os.page_pos() + std::ifstream::pos_type(page.size() - 1) << "}, size = " << std::dec << page.size() << "\n";
+		if(verbosity > 1)
+			std::cout << std::setw(8) << std::hex << os.page_pos() << std::dec << "  serialno=" << page.serialno()
+				<< ", pageno=" << page.pageno() << ", bos=" << page.bos() << ", eos=" << page.eos()
+				<< ", continued=" << page.continued() << ", size=" << page.size() << "\n";
 
 		Streams::iterator i = streams.find(page.serialno());
 		if(i == streams.end())
@@ -75,7 +81,6 @@ void process_file(const char* filename, int verbosity)
 
 		if(page.eos())
 			s.ended = true;
-
 	}
 	for(auto i = streams.cbegin(); i != streams.cend(); ++i)
 	{
