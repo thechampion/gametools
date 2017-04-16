@@ -15,7 +15,7 @@ ogg-seeker.o: ogg-seeker.cpp common.h
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 ogg-extractor: ogg-extractor.o common.o
-	$(LD) $(LDFLAGS) $(LIBS) -o $@ $^
+	$(LD) $(LDFLAGS) $(LIBS) -lboost_filesystem -lboost_system -o $@ $^
 
 ogg-extractor.o: ogg-extractor.cpp common.h
 	$(CXX) $(CXXFLAGS) -o $@ $<
